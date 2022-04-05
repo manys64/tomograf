@@ -12,10 +12,6 @@ def normalize_image(data):
 
 st.set_page_config(page_title="Tomograf")
 
-# uklad obrotu max 180 stopni
-# dla 360 bedzie o pol stopnia
-# luk max 180 stopni
-# 360 detektorow i emiterow
 with st.sidebar:
     number_of_scans = st.number_input("Number of scans", 10, 360, 90, step=1)
     number_of_detectors = st.number_input("Number of detectors", 10, 180, 50, step=1)
@@ -23,7 +19,7 @@ with st.sidebar:
     sinogram = st.checkbox("Filter sinogram")
 
 original_image = st.file_uploader("Choose image file", type=["png", "jpg", "jpeg", "dcm"])
-# tutaj if jesli dicom to wykonuje wersje funkcji dla dicoma
+
 
 if original_image:
     if original_image.type == "application/dicom":
