@@ -1,10 +1,7 @@
+import copy
 import math
-
-import matplotlib.pyplot as plt
 import numpy as np
 import skimage.draw as draw
-import skimage.io as io
-from skimage.color import gray2rgb
 
 
 # plik z matematyka i obliczeniami
@@ -58,14 +55,11 @@ class Tomograph:
                 # convolve(sino[i, :], kernel, mode='same')
             self.tomograph_reconstruction(detector_points, emitter_points, f, tomograph_image_empty, use_filter)
             if scan == process_indexes[process_index]:
-                process_scans_images.append(tomograph_image_empty)
+                process_scans_images.append(copy.copy(tomograph_image_empty))
                 process_index += 1
-
-        self.draw_sinogram(sino, False)
-        tomograph_image = tomograph_image_empty
-        process_scans_images.append(gray2rgb(tomograph_image))
         # self.draw_tomograph_image(sino,f.shape[0],False)
-        return process_scans_images
+        process_scans_images.append(copy.copy(tomograph_image_empty))
+        return process_scans_images, sino
 
     def pad_with(self, vector, pad_width, iaxis, kwargs):
         pad_value = kwargs.get('padder', 10)
@@ -101,11 +95,6 @@ class Tomograph:
             sinogram_row.append(np.average(image[line]))
         # print(sinogram_row)
         return sinogram_row
-
-    def draw_sinogram(self, sinogram, use_filter):
-        # print(sinogram)
-        imgplot = plt.imshow(sinogram, cmap='gray')
-        plt.show()
 
     def draw_tomograph_image(self, sinogram, side_len, use_filter):
         # print(sinogram)
