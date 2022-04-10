@@ -65,16 +65,19 @@ class Tomograph:
         angle_shift = math.radians(alpha - angle_range / 2)
         angle_range = math.radians(angle_range)
         angles = np.linspace(0, angle_range, point_amount) + angle_shift
-        cx, cy = circle_center
-        x = circle_radius * np.cos(angles) - cx
-        y = circle_radius * np.sin(angles) - cy
-        points = np.array(list(zip(x, y)))
+
+        points = self.get_points_for_angles(angles, circle_center, circle_radius)
         return points
 
     def calc_emitter_points(self, alpha, angle_range, point_amount, circle_radius, circle_center):
         angle_shift = math.radians(alpha - angle_range / 2 + 180)
         angle_range = math.radians(angle_range)
         angles = np.linspace(0, angle_range, point_amount) + angle_shift
+
+        points = self.get_points_for_angles(angles,circle_center,circle_radius)
+        return points
+
+    def get_points_for_angles(self,angles,circle_center,circle_radius):
         cx, cy = circle_center
         x = circle_radius * np.cos(angles) - cx
         y = circle_radius * np.sin(angles) - cy
@@ -129,8 +132,6 @@ class Tomograph:
             else:
                 right_part[i] = (-4 / math.pow(math.pi, 2)) / math.pow(i, 2)
         right_part[0] = 1
-        for i in range(0, len(right_part) - 1):
-            print(right_part[i])
         left_part = np.flip(right_part[1:])
         kernel = np.concatenate((left_part, right_part))
         return kernel
