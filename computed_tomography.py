@@ -4,11 +4,9 @@ import numpy as np
 import skimage.draw as draw
 
 
-
 class Tomograph:
-    def scanner(self, img_name, num_detectors, num_scans, beam_extent, use_filter):
-        # img = io.imread(img_name, as_gray=True)
-        img = img_name
+    def scanner(self, img_data, num_detectors, num_scans, beam_extent, use_filter):
+        img = img_data
 
         # Getting the bigger side of the image
         s = max(img.shape[0:2])
@@ -20,7 +18,7 @@ class Tomograph:
         f[ay:img.shape[0] + ay, ax:ax + img.shape[1]] = img
         side_len = f.shape[0]
 
-        if img_name == 'SADDLE_PE.jpg' or img_name == 'Shepp_logan.jpg':
+        if side_len > 900:
             pad_size = 200
             f = np.pad(f, pad_size, self.pad_with, padder=0)
             side_len = f.shape[0]
@@ -44,14 +42,12 @@ class Tomograph:
                                                         circle_radius, circle_center)
             emitter_points = self.calc_emitter_points(all_scans_angles[scan], beam_extent, num_detectors, circle_radius,
                                                       circle_center)
-            sino_row = self.get_sinogram_row(detector_points, emitter_points, f, use_filter)
-            sino.append(sino_row)
 
             if use_filter == True:
-                print("todo")
-                # convolve(sino[i, :], kernel, mode='same')
-
-            self.tomograph_reconstruction(detector_points, emitter_points, f, tomograph_image_empty, use_filter)
+                sino_row = self.tomograph_reconstruction_filter(detector_points, emitter_points, f, tomograph_image_empty)
+            else:
+                sino_row = self.tomograph_reconstruction(detector_points, emitter_points, f, tomograph_image_empty)
+            sino.append(sino_row)
 
             if scan == process_indexes[process_index]:
                 process_scans_images.append(copy.copy(tomograph_image_empty))
@@ -89,17 +85,52 @@ class Tomograph:
         sinogram_row = []
         for j in range(len(detector_points)):
             line = draw.line_nd(emitter_points[len(emitter_points) - 1 - j], detector_points[j])
-            # for each detector calc avg of values in emitter-detector line
+
             sinogram_row.append(np.average(image[line]))
         return sinogram_row
 
-    def draw_tomograph_image(self, sinogram, side_len, use_filter):
-        tomograph_image = np.zeros((side_len, side_len))
 
-    def tomograph_reconstruction(self, detector_points, emitter_points, image, output_image, use_filter):
+    def tomograph_reconstruction(self, detector_points, emitter_points, image, output_image):
         sinogram_row = []
+        #step 1 & 3 combined
         for j in range(len(detector_points)):
             line = draw.line_nd(emitter_points[len(emitter_points) - 1 - j], detector_points[j])
-            sinogram_row.append(np.average(image[line]))
-            output_image[line] += np.average(image[line])
+            # for each detector calc avg of values in emitter-detector line
+            sino =  np.average(image[line])
+            sinogram_row.append(sino)
+            output_image[line] += sino
 
+        return sinogram_row
+
+    def tomograph_reconstruction_filter(self, detector_points, emitter_points, image, output_image):
+        sinogram_row = []
+        #step 1
+        for j in range(len(detector_points)):
+            line = draw.line_nd(emitter_points[len(emitter_points) - 1 - j], detector_points[j])
+            # for each detector calc avg of values in emitter-detector line
+            sino = np.average(image[line])
+            sinogram_row.append(sino)
+        #step 2
+        kernel = self.get_kernel()
+        sinogram_row = np.convolve(sinogram_row, kernel, mode='same')
+
+        #step 3
+        for k in range(len(detector_points)):
+            line_reconstruction = draw.line_nd(emitter_points[len(emitter_points) - 1 - k], detector_points[k])
+            output_image[line_reconstruction] += sinogram_row[k]
+
+        return sinogram_row
+
+    def get_kernel(self):
+        right_part = np.zeros(11)
+        for i in range(0, len(right_part)):
+            if i % 2 == 0:
+                right_part[i] = 0
+            else:
+                right_part[i] = (-4 / math.pow(math.pi, 2)) / math.pow(i, 2)
+        right_part[0] = 1
+        for i in range(0, len(right_part) - 1):
+            print(right_part[i])
+        left_part = np.flip(right_part[1:])
+        kernel = np.concatenate((left_part, right_part))
+        return kernel
